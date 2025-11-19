@@ -5,7 +5,7 @@ import os
 import numpy as np
 from PIL import Image
 from torchvision import transforms
-from config import Config
+from args_fusion import args
 
 #存放图像地址的列表
 def img_to_list(image_path):
@@ -30,8 +30,7 @@ def img_to_tensor(img,target_size = None):
     return tensor_img
 
 #加载图像
-def img_load():
-    image_path = Config.pet_train_img_path
+def img_load(image_path):
     img_path_list = img_to_list(image_path)
     length = len(img_path_list)
     img_list = []
@@ -66,6 +65,3 @@ class dataset():
 
         return source1, source2
 
-def dataloader():
-    pet_train_img_paths = img_to_list(Config.pet_train_img_path)
-    mri_train_img_paths = img_to_list(Config.mri_train_img_path)
