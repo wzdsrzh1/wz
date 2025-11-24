@@ -12,8 +12,8 @@ from torch.autograd import Variable
 import utils
 from model import MedicalFusion_net
 from args_fusion import args
-import pytorch_msssim
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
+import loss
 
 
 def main():
@@ -91,7 +91,7 @@ def train(i, imgs_mod1, imgs_mod2, modality1, modality2):
 
     # Loss functions
     mse_loss = torch.nn.MSELoss()
-    ssim_loss = pytorch_msssim.msssim
+    ssim_loss = loss.StructuralSimilarityLoss()
     l1_loss = torch.nn.L1Loss()
 
     # Move to GPU
