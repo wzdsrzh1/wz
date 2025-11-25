@@ -66,11 +66,11 @@ class FusionDataset(Dataset):
 
     def __getitem__(self, idx):
         try:
-            # 加载模态一图像
-            source1 = Image.open(self.source1_paths[idx]).convert('L')
+            # 加载PET图像
+            source1 = Image.open(self.source1_paths[idx]).convert('L')  # 转换为灰度
             source1 = self.transform(source1)  # [1, H, W] 或 [C, H, W]
 
-            # 加载模态二图像
+            # 加载MRI图像
             source2 = Image.open(self.source2_paths[idx]).convert('L')
             source2 = self.transform(source2)
 
@@ -93,9 +93,13 @@ class FusionDataset(Dataset):
         return info
 
 
-def create_dataloaders_train(image_size=(256, 256), batch_size=6, num_workers=2):
+
+def create_dataloaders_train(source1_train_img_path,source2_train_img_path,
+                             source1_val_img_path,source2_val_img_path,
+                             image_size=(256, 256), batch_size=6, num_workers=1
+                             ):
     """
-    创建训练数据加载器
+    创建训练和验证数据加载器
 
     Args:
         image_size: 目标图像尺寸
@@ -103,13 +107,16 @@ def create_dataloaders_train(image_size=(256, 256), batch_size=6, num_workers=2)
         num_workers: 数据加载进程数
 
     Returns:
-        train_loader
+        train_loader, val_loader, train_dataset, val_dataset
     """
     # 获取图像路径
-    pet_train_paths = get_image_paths(Config.pet_train_img_path)
-    mri_train_paths = get_image_paths(Config.mri_train_img_path)
+    source1_train_paths = get_image_paths(source1_train_img_path)
+    source2_train_paths = get_image_paths(source2_train_img_path)
+    source1_val_paths = get_image_paths(source1_val_img_path)
+    source2_val_paths = get_image_paths(source2_val_img_path)
 
-    print(f"训练集: PET={len(pet_train_paths)}, MRI={len(mri_train_paths)}")
+    print(f"训练集: PET={len(source1_train_paths)}, MRI={len(source2_train_paths)}")
+    print(f"验证集: PET={len(source1_val_paths)}, MRI={len(source2_val_paths)}")
 
     # 数据增强配置
     train_transform = transforms.Compose([
@@ -120,16 +127,23 @@ def create_dataloaders_train(image_size=(256, 256), batch_size=6, num_workers=2)
         transforms.ToTensor()
     ])
 
-    test_transform = transforms.Compose([
+    val_transform = transforms.Compose([
         transforms.Resize(image_size),
         transforms.ToTensor()
     ])
 
     # 创建数据集
     train_dataset = FusionDataset(
-        pet_train_paths,
-        mri_train_paths,
+        source1_train_paths,
+        source2_train_paths,
         transform=train_transform,
+        target_size=image_size
+    )
+
+    val_dataset = FusionDataset(
+        source1_val_paths,
+        source2_val_paths,
+        transform=val_transform,
         target_size=image_size
     )
 
@@ -144,9 +158,19 @@ def create_dataloaders_train(image_size=(256, 256), batch_size=6, num_workers=2)
         persistent_workers=num_workers > 0
     )
 
-    return train_loader
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=num_workers > 0
+    )
 
-def create_dataloaders_test(image_size=(256, 256), batch_size=6, num_workers=2):
+    return train_loader, val_loader
+
+def create_dataloaders_test(source1_test_img_path,source2_test_img_path,
+                            image_size=(256, 256), batch_size=6, num_workers=2):
     """
     创建训练数据加载器
 
@@ -159,10 +183,10 @@ def create_dataloaders_test(image_size=(256, 256), batch_size=6, num_workers=2):
         test_loader
     """
     # 获取图像路径
-    pet_test_paths = get_image_paths(Config.pet_test_img_path)
-    mri_test_paths = get_image_paths(Config.mri_test_img_path)
+    source1_test_paths = get_image_paths(source1_test_img_path)
+    source2_test_paths = get_image_paths(source2_test_img_path)
 
-    print(f"训练集: PET={len(pet_test_paths)}, MRI={len(mri_test_paths)}")
+    print(f"训练集: PET={len(source1_test_paths)}, MRI={len(source2_test_paths)}")
 
     # 数据增强配置
     test_transform = transforms.Compose([
@@ -172,8 +196,8 @@ def create_dataloaders_test(image_size=(256, 256), batch_size=6, num_workers=2):
 
     # 创建数据集
     test_dataset = FusionDataset(
-        pet_test_paths,
-        mri_test_paths,
+        source1_test_paths,
+        source2_test_paths,
         transform=test_transform,
         target_size=image_size
     )
@@ -191,12 +215,10 @@ def create_dataloaders_test(image_size=(256, 256), batch_size=6, num_workers=2):
 
     return test_loader
 
-
-
 # 调试和测试函数
 def test_dataloader():
     """测试数据加载器功能"""
-    train_loader = create_dataloaders_train()
+    train_loader, val_loader, train_dataset, val_dataset = create_dataloaders_train()
 
     print("\n=== 数据加载器测试 ===")
     print(f"训练集大小: {len(train_dataset)}")

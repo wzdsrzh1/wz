@@ -4,25 +4,26 @@ import torch
 
 class Config:
     # 数据路径配置
-    pet_train_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/train/PET'
-    mri_train_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/train/MRI'
-    pet_test_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/test/PET'
-    mri_test_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/test/MRI'
-
+    source1_train_img_path = './dataset/CT-MRI/train/CT'
+    source2_train_img_path = './dataset/CT-MRI/train/MRI'
+    source1_test_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/test/PET'
+    source2_test_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/test/MRI'
+    source1_val_img_path = './dataset/CT-MRI/val/CT'
+    source2_val_img_path = './dataset/CT-MRI/val/MRI'
     #模型选择
     model = 'medical'#可选medical/dense fusion
 
     # 数据加载配置
     image_size = (256, 256)
-    batch_size = 6
+    batch_size = 4
     num_workers = 1
 
     # 模型配置
-    input_nc = 3  # 输入通道数
-    output_nc = 3  # 输出通道数
+    input_nc = 1  # 输入通道数
+    output_nc = 1  # 输出通道数
 
     # 训练配置
-    epochs = 100  # 训练轮数
+    epochs = 10  # 训练轮数
     lr = 1e-4  # 学习率
     weight_decay = 1e-5  # 权重衰减
     gradient_clip_norm = 1.0  # 梯度裁剪阈值
@@ -43,7 +44,7 @@ class Config:
 
     # 学习率调度器配置
     use_scheduler = True  # 是否使用学习率调度器
-    scheduler_type = 'ReduceLROnPlateau'  # 可选: 'ReduceLROnPlateau', 'CosineAnnealingLR'
+    scheduler = 'ReduceLROnPlateau'  # 可选: 'ReduceLROnPlateau', 'CosineAnnealingLR'
     scheduler_patience = 5  # ReduceLROnPlateau的耐心值
     scheduler_factor = 0.5  # 学习率衰减因子
     scheduler_min_lr = 1e-6  # 最小学习率
@@ -56,7 +57,7 @@ class Config:
 
     # 训练日志配置
     log_interval = 10  # 每N个batch打印一次日志
-    save_interval = 50  # 每N个epoch保存一次模型
+    save_interval = 5  # 每N个epoch保存一次模型
     save_best = True  # 是否保存最佳模型
 
     # 验证配置

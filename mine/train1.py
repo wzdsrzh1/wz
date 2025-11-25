@@ -244,7 +244,9 @@ class Trainer:
                 'input_nc': self.config.input_nc,
                 'output_nc': self.config.output_nc,
                 'fusion_strategy': self.config.fusion_strategy,
-            }
+                'batch_size' :self.config.batch_size
+            },
+            'learning_rate': self.optimizer.param_groups[0]['lr'],
         }
         
         if self.scheduler is not None:
