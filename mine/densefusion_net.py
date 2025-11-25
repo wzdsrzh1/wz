@@ -70,6 +70,30 @@ class DenseFuse_net(nn.Module):
         self.conv4 = ConvLayer(nb_filter[2], nb_filter[3], kernel_size, stride)
         self.conv5 = ConvLayer(nb_filter[3], output_nc, kernel_size, stride)
 
+    def forward(self, img1, img2, strategy_type='addition'):
+        """
+        完整的前向传播方法
+
+        Args:
+            img1: 输入图像1 [B, C, H, W]
+            img2: 输入图像2 [B, C, H, W]
+            strategy_type: 融合策略类型
+
+        Returns:
+            fused_img: 融合后的图像 [B, output_nc, H, W]
+        """
+        # 编码
+        en1 = self.encoder(img1)
+        en2 = self.encoder(img2)
+
+        # 融合
+        fused_features = self.fusion(en1, en2, strategy_type)
+
+        # 解码
+        fused_img = self.decoder(fused_features)
+
+        return fused_img[0]  # 返回第一个（也是唯一一个）输出
+
     def encoder(self, input):
         x1 = self.conv1(input)
         x_DB = self.DB1(x1)

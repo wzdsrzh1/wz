@@ -87,7 +87,10 @@ class Trainer:
             img1 = img1.to(self.device)
             img2 = img2.to(self.device)
             self.optimizer.zero_grad()
-            fused_img = self.model(img1, img2, strategy_type=self.config.fusion_strategy)
+            if self.config.model == 'medical':
+                fused_img = self.model(img1, img2, strategy_type=self.config.fusion_strategy)
+            elif self.config.model == 'dense fusion':
+                fused_img = self.model(img1, img2)
             total_loss,loss_dict = self.loss(fused_img, img1, img2)
             total_loss.backward()
             if self.config.gradient_clip_norm > 0:

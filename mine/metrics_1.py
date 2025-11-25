@@ -8,8 +8,10 @@ from matplotlib import rcParams
 import cv2
 import os
 import pandas as pd
+from PIL import Image
 from openpyxl import load_workbook
 import warnings
+
 
 warnings.filterwarnings('ignore')
 
@@ -23,7 +25,6 @@ class FusionMetrics:
 
     def __init__(self, device='cuda'):
         self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
-        print(f"使用设备: {self.device}")
 
     def to_tensor(self, img):
         """将图像转换为GPU张量"""
@@ -252,8 +253,8 @@ class FusionMetrics:
         ssim_b = self.calculate_SSIM(fusion_img, modality_B)
         metrics['SSIM'] = (ssim_a + ssim_b) / 2
 
-        #print("正在计算 SSIR...")
-        #metrics['SSIR'] = self.calculate_SSIR(fusion_img, modality_A, modality_B)
+        print("正在计算 SSIR...")
+        metrics['SSIR'] = self.calculate_SSIR(fusion_img, modality_A, modality_B)
 
         print("正在计算 PSNR...")
         metrics['PSNR'] = self.calculate_PSNR(fusion_img, modality_A, modality_B)
@@ -279,8 +280,6 @@ def save_to_excel(save_path,save_list):
         # 保存合并后的数据
         combined_df.to_excel(path_excel, index=False, engine='openpyxl')
     print(f'结果已保存在{path_excel}')
-    return None
-
 
 def visualize_results(modality_A, modality_B, fusion_img, metrics, save_path='fusion_evaluation.png'):
     """可视化评价结果 - 表格版本"""
@@ -384,8 +383,14 @@ def load_image(path):
 
     return img
 
-def metrics_train(fused_img,source_1_img,source_2_img):
-    metrics = {}
+def metrics_test(device,fused_img,source1,source2):
+
+    evaluator = FusionMetrics(device = device)
+    print('-'*30,'开始计算评价指标','-'*30)
+    metrics = evaluator.evaluate_all(fused_img,source1 , source2)
+    return metrics
+
+
 
 
 

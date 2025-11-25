@@ -3,15 +3,17 @@ import json
 import torch
 
 class Config:
+
+
     # 数据路径配置
     source1_train_img_path = './dataset/CT-MRI/train/CT'
     source2_train_img_path = './dataset/CT-MRI/train/MRI'
-    source1_test_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/test/PET'
-    source2_test_img_path = 'D:/dataset/AANLIB/MyDatasets/PET-MRI/test/MRI'
+    source1_test_img_path = './dataset/CT-MRI/test/CT'
+    source2_test_img_path = './dataset/CT-MRI/test/MRI'
     source1_val_img_path = './dataset/CT-MRI/val/CT'
     source2_val_img_path = './dataset/CT-MRI/val/MRI'
     #模型选择
-    model = 'medical'#可选medical/dense fusion
+    model = 'dense fusion'#可选medical/dense fusion
 
     # 数据加载配置
     image_size = (256, 256)
@@ -23,7 +25,7 @@ class Config:
     output_nc = 1  # 输出通道数
 
     # 训练配置
-    epochs = 10  # 训练轮数
+    epochs = 100  # 训练轮数
     lr = 1e-4  # 学习率
     weight_decay = 1e-5  # 权重衰减
     gradient_clip_norm = 1.0  # 梯度裁剪阈值
@@ -62,3 +64,11 @@ class Config:
 
     # 验证配置
     val_interval = 5  # 每N个epoch验证一次
+
+    #保存融合结果
+    save_result = './result'
+    #保存评价指标
+    save_metrics = './metrics'
+    #模型文件地址
+    model_path = './checkpoints/best_model.pth'#默认加载最好的模型
+    #
