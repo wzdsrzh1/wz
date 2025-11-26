@@ -242,21 +242,16 @@ class FusionMetrics:
 
         metrics = {}
 
-        print("正在计算 FMI...")
         metrics['FMI'] = self.calculate_FMI(fusion_img, modality_A, modality_B)
 
-        print("正在计算 Qabf...")
         metrics['Qabf'] = self.calculate_Qabf(fusion_img, modality_A, modality_B)
 
-        print("正在计算 SSIM...")
         ssim_a = self.calculate_SSIM(fusion_img, modality_A)
         ssim_b = self.calculate_SSIM(fusion_img, modality_B)
         metrics['SSIM'] = (ssim_a + ssim_b) / 2
 
-        print("正在计算 SSIR...")
         metrics['SSIR'] = self.calculate_SSIR(fusion_img, modality_A, modality_B)
 
-        print("正在计算 PSNR...")
         metrics['PSNR'] = self.calculate_PSNR(fusion_img, modality_A, modality_B)
 
         return metrics
@@ -386,8 +381,8 @@ def load_image(path):
 def metrics_test(device,fused_img,source1,source2):
 
     evaluator = FusionMetrics(device = device)
-    print('-'*30,'开始计算评价指标','-'*30)
     metrics = evaluator.evaluate_all(fused_img,source1 , source2)
+
     return metrics
 
 

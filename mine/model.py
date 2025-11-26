@@ -118,6 +118,7 @@ class MedicalFusion_net(nn.Module):
         self.conv3 = ConvLayer(nb_filter[2], nb_filter[3], kernel_size, stride)
         self.conv4 = ConvLayer(nb_filter[3], nb_filter[4], kernel_size, stride)
         self.conv5 = ConvLayer(nb_filter[4], output_nc, kernel_size, stride, is_last=True)
+        self.output_activation = nn.Sigmoid()
 
     def encoder(self, input):
         x1 = self.conv1(input)
@@ -168,6 +169,7 @@ class MedicalFusion_net(nn.Module):
         x3 = self.conv3(x2)
         x4 = self.conv4(x3)
         output = self.conv5(x4)
+        output = self.output_activation(output)
         return [output]
 
     def forward(self, img1, img2, strategy_type='attention'):

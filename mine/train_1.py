@@ -6,26 +6,26 @@ from torch.optim import Adam
 from model import MedicalFusion_net
 from config import Config
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
-from loss import MedicalImageFusionLoss
+from loss_2 import MedicalImageFusionLoss
 from densefusion_net import DenseFuse_net
 from dataload_1 import create_dataloaders_train
 import json
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 class Trainer:
     def __init__(self,config):
         self.config = config
         self.device = torch.device(config.device)
+
         #创建保存目录
         os.makedirs(config.save_model_dir, exist_ok=True)
         os.makedirs(config.save_loss_dir, exist_ok=True)
         os.makedirs(config.log_dir, exist_ok=True)
         #初始化损失函数
         self.loss = MedicalImageFusionLoss(
-            w_ssim=config.w_ssim,
-            w_gradient=config.w_gradient,
-            w_intensity=config.w_intensity,
-            w_mi=Config.w_mi,
-            use_perceptual=config.use_perceptual,
+            w_ssim=config.w_ssim
             ).to(self.device)
         #初始化模型
         if config.model == 'medical':
@@ -91,7 +91,7 @@ class Trainer:
                 fused_img = self.model(img1, img2, strategy_type=self.config.fusion_strategy)
             elif self.config.model == 'dense fusion':
                 fused_img = self.model(img1, img2)
-            total_loss,loss_dict = self.loss(fused_img, img1, img2)
+            total_loss,loss_dict = self.loss(fused_img * 255, img1 * 255, img2 * 255)
             total_loss.backward()
             if self.config.gradient_clip_norm > 0:
                 torch.nn.utils.clip_grad_norm_(
@@ -144,7 +144,7 @@ class Trainer:
                 img1 = img1.to(self.device)
                 img2 = img2.to(self.device)
                 fused_img = self.model(img1, img2, strategy_type=self.config.fusion_strategy)
-                total_loss, loss_dict = self.loss(fused_img, img1, img2)
+                total_loss, loss_dict = self.loss(fused_img * 255, img1 * 255, img2 * 255)
                 #累计损失
                 val_loss += total_loss.item()
                 for key,value in loss_dict.items():
@@ -315,15 +315,21 @@ class Trainer:
 def main():
     config = Config()
 
-    train_loader,val_loader = create_dataloaders_train(
-                source1_train_img_path=config.source1_train_img_path,
-                source2_train_img_path=config.source2_train_img_path,
-                source1_val_img_path=config.source1_val_img_path,
-                source2_val_img_path=config.source2_val_img_path,
-                image_size=config.image_size,
-                batch_size=config.batch_size,
-                num_workers=config.num_workers)
-
+    #train_loader,val_loader = create_dataloaders_train(
+    #            source1_train_img_path=config.source1_train_img_path,
+    #            source2_train_img_path=config.source2_train_img_path,
+    #            source1_val_img_path=config.source1_val_img_path,
+    #            source2_val_img_path=config.source2_val_img_path,
+    #            image_size=config.image_size,
+    #            batch_size=config.batch_size,
+    #            num_workers=config.num_workers)
+    train_loader, val_loader = create_dataloaders_train(
+        source1_img_paths=config.source1_img_paths,
+        source2_img_paths=config.source2_img_paths,
+        image_size=config.image_size,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers
+    )
     trainer = Trainer(config)
     trainer.train(train_loader, val_loader)
 

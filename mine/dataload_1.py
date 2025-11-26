@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 import os
 import numpy as np
 from PIL import Image
@@ -94,60 +94,102 @@ class FusionDataset(Dataset):
 
 
 
-def create_dataloaders_train(source1_train_img_path,source2_train_img_path,
-                             source1_val_img_path,source2_val_img_path,
-                             image_size=(256, 256), batch_size=6, num_workers=1
-                             ):
-    """
-    创建训练和验证数据加载器
+#def create_dataloaders_train(source1_train_img_path,source2_train_img_path,
+#                             source1_val_img_path,source2_val_img_path,
+#                             image_size=(256, 256), batch_size=6, num_workers=1
+#                             ):
+#    """
+#    创建训练和验证数据加载器
+#
+#    Args:
+#        image_size: 目标图像尺寸
+#        batch_size: 批次大小
+#        num_workers: 数据加载进程数
+#
+#    Returns:
+#        train_loader, val_loader, train_dataset, val_dataset
+#    """
+#    # 获取图像路径
+#    source1_train_paths = get_image_paths(source1_train_img_path)
+#    source2_train_paths = get_image_paths(source2_train_img_path)
+#    source1_val_paths = get_image_paths(source1_val_img_path)
+#    source2_val_paths = get_image_paths(source2_val_img_path)
+#
+#    print(f"训练集: PET={len(source1_train_paths)}, MRI={len(source2_train_paths)}")
+#    print(f"验证集: PET={len(source1_val_paths)}, MRI={len(source2_val_paths)}")
+#
+#    # 数据增强配置
+#    train_transform = transforms.Compose([
+#        transforms.Resize(image_size),
+#        transforms.RandomHorizontalFlip(0.5),
+#        transforms.RandomRotation(10),
+#        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+#        transforms.ToTensor()
+#    ])
+#
+#    val_transform = transforms.Compose([
+#        transforms.Resize(image_size),
+#        transforms.ToTensor()
+#    ])
+#
+#    # 创建数据集
+#    train_dataset = FusionDataset(
+#        source1_train_paths,
+#        source2_train_paths,
+#        transform=train_transform,
+#        target_size=image_size
+#    )
+#
+#    val_dataset = FusionDataset(
+#        source1_val_paths,
+#        source2_val_paths,
+#        transform=val_transform,
+#        target_size=image_size
+#    )
+#
+#    # 创建数据加载器
+#    train_loader = DataLoader(
+#        train_dataset,
+#        batch_size=batch_size,
+#        shuffle=True,
+#        num_workers=num_workers,
+#        pin_memory=torch.cuda.is_available(),
+#        drop_last=True,
+#        persistent_workers=num_workers > 0
+#    )
+#
+#    val_loader = DataLoader(
+#        val_dataset,
+#        batch_size=batch_size,
+#        shuffle=False,
+#        num_workers=num_workers,
+#        pin_memory=torch.cuda.is_available(),
+#        persistent_workers=num_workers > 0
+#    )
+#
+#    return train_loader, val_loader
 
-    Args:
-        image_size: 目标图像尺寸
-        batch_size: 批次大小
-        num_workers: 数据加载进程数
-
-    Returns:
-        train_loader, val_loader, train_dataset, val_dataset
-    """
-    # 获取图像路径
-    source1_train_paths = get_image_paths(source1_train_img_path)
-    source2_train_paths = get_image_paths(source2_train_img_path)
-    source1_val_paths = get_image_paths(source1_val_img_path)
-    source2_val_paths = get_image_paths(source2_val_img_path)
-
-    print(f"训练集: PET={len(source1_train_paths)}, MRI={len(source2_train_paths)}")
-    print(f"验证集: PET={len(source1_val_paths)}, MRI={len(source2_val_paths)}")
-
-    # 数据增强配置
-    train_transform = transforms.Compose([
+def create_dataloaders_train(source1_img_paths, source2_img_paths,train_ratio=0.7,image_size=(256, 256),batch_size = 6,num_workers = 2):
+    #获取图像地址
+    source1_paths = get_image_paths(source1_img_paths)
+    source2_paths = get_image_paths(source2_img_paths)
+    #数据增强
+    transform = transforms.Compose([
         transforms.Resize(image_size),
         transforms.RandomHorizontalFlip(0.5),
         transforms.RandomRotation(10),
         transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
         transforms.ToTensor()
     ])
-
-    val_transform = transforms.Compose([
-        transforms.Resize(image_size),
-        transforms.ToTensor()
-    ])
-
-    # 创建数据集
-    train_dataset = FusionDataset(
-        source1_train_paths,
-        source2_train_paths,
-        transform=train_transform,
-        target_size=image_size
+    dataset = FusionDataset(source1_paths, source2_paths, transform=transform, target_size=image_size)
+    data_size = len(dataset)
+    train_size = int(train_ratio * data_size)
+    val_size = data_size - train_size
+    train_dataset, val_dataset = random_split(
+        dataset,
+        [train_size, val_size],
+        generator=torch.Generator().manual_seed(42)  # 固定随机种子
     )
-
-    val_dataset = FusionDataset(
-        source1_val_paths,
-        source2_val_paths,
-        transform=val_transform,
-        target_size=image_size
-    )
-
-    # 创建数据加载器
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -157,7 +199,6 @@ def create_dataloaders_train(source1_train_img_path,source2_train_img_path,
         drop_last=True,
         persistent_workers=num_workers > 0
     )
-
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
@@ -166,7 +207,6 @@ def create_dataloaders_train(source1_train_img_path,source2_train_img_path,
         pin_memory=torch.cuda.is_available(),
         persistent_workers=num_workers > 0
     )
-
     return train_loader, val_loader
 
 def create_dataloaders_test(source1_test_img_path,source2_test_img_path,

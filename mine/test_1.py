@@ -3,14 +3,11 @@ import numpy as np
 import time
 from tqdm import tqdm
 import torch
-from torch.optim import Adam
 from model import MedicalFusion_net
 from config import Config
-from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
-from loss import MedicalImageFusionLoss
+from loss_2 import MedicalImageFusionLoss
 from densefusion_net import DenseFuse_net
 from dataload_1 import create_dataloaders_test
-import json
 from metrics_1 import metrics_test
 from PIL import Image
 import csv
@@ -18,7 +15,7 @@ import csv
 
 class Tester:
 
-    def __init__(self,config):
+    def __init__(self, config):
         self.config = config
         #创建保存目录
         os.makedirs(config.save_result,exist_ok = True)#保存融合图像
@@ -26,16 +23,9 @@ class Tester:
         self.device = torch.device(config.device)
         #加载模型
         self.model = self.load_model(model_path = self.config.model_path)
-        #计算评价指标
-        self.metrics = metrics_test(device = self.device,fused_img_path = self.config.fused_img_path,
-                                    source1_path=config.source1_test_img_path,source2_path=config.source2_test_img_path)
         #初始化损失函数
         self.loss = MedicalImageFusionLoss(
-            w_ssim=config.w_ssim,
-            w_gradient=config.w_gradient,
-            w_intensity=config.w_intensity,
-            w_mi=Config.w_mi,
-            use_perceptual=config.use_perceptual,
+            w_ssim=config.w_ssim
             ).to(self.device)
 
     def load_model(self,model_path):
@@ -53,13 +43,19 @@ class Tester:
         ).to(self.device)
         #加载权重
         checkpoint = torch.load(model_path, map_location=self.device)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['model_state_dict'])
+            print(f"从检查点加载模型 (epoch {checkpoint.get('epoch', 'unknown')})")
+        else:
+            model.load_state_dict(checkpoint)
+            print("加载模型权重")
         model.eval()
 
         # 打印模型信息
         total_params = sum(p.numel() for p in model.parameters())
         print(f"模型参数量: {total_params:,} ({total_params * 4 / 1e6:.2f}MB)\n")
         print(type(model))
+
         return model
 
     def tensor_to_numpy(self, tensor):
@@ -133,7 +129,7 @@ class Tester:
             fused_img = self.model(img_1,img_2,strategy_type=self.config.fusion_strategy)
 
             # 计算损失
-            total_loss, loss_dict = self.loss(fused_img, img_1, img_2)
+            total_loss, loss_dict = self.loss(fused_img * 255, img_1 * 255, img_2 *255)
 
         return fused_img, loss_dict
 
@@ -156,13 +152,13 @@ class Tester:
                       'intensity': [],
                       'mi': []
                       }
+        start_time = time.time()
         with torch.no_grad():
             pbar = tqdm(test_loader, desc='测试中')
-            start_time = time.time()
             for batch_idx, (img1, img2) in enumerate(pbar):
                 batch_size = img1.shape[0]
                 # 测试单个批次
-                fused_img, loss_dict = self.test_single_batch(img1, img2, batch_idx)
+                fused_img, loss_dict = self.test_batch(img1, img2, batch_idx)
                 for i in range(batch_size):
                     # 转换为numpy
                     img1_np = self.tensor_to_numpy(img1[i])
@@ -175,13 +171,13 @@ class Tester:
                     # 保存融合图像
                     if save_results and self.config.save_individual:
                         fused_path = os.path.join(
-                            self.config.output_dir,
+                            self.config.save_result,
                             'fused_images',
                             f'fused_{img_idx:04d}.png'
                         )
                         self.save_image(fused_np, fused_path)
 
-                    metrics = self.metrics(fused_np / 255, img1_np / 255, img2_np / 255)
+                    metrics = metrics_test(device = self.device,fused_img=fused_np / 255, source1=img1_np / 255,source2=img2_np / 255)
                     result = {
                         'index': img_idx,
                         'loss_total': loss_dict.get('total', 0.0),

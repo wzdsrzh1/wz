@@ -10,7 +10,7 @@ from tqdm import tqdm
 import json
 
 from model import MedicalFusion_net
-from loss import MedicalImageFusionLoss
+from loss_2 import MedicalImageFusionLoss
 from dataload_1 import create_dataloaders_train, create_dataloaders_test
 from config import Config
 

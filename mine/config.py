@@ -6,6 +6,8 @@ class Config:
 
 
     # 数据路径配置
+    source1_img_paths = './dataset/CT-MRI/train/CT'
+    source2_img_paths = './dataset/CT-MRI/train/MRI'
     source1_train_img_path = './dataset/CT-MRI/train/CT'
     source2_train_img_path = './dataset/CT-MRI/train/MRI'
     source1_test_img_path = './dataset/CT-MRI/test/CT'
@@ -13,20 +15,20 @@ class Config:
     source1_val_img_path = './dataset/CT-MRI/val/CT'
     source2_val_img_path = './dataset/CT-MRI/val/MRI'
     #模型选择
-    model = 'dense fusion'#可选medical/dense fusion
+    model = 'medical'#可选medical/dense fusion
 
     # 数据加载配置
     image_size = (256, 256)
-    batch_size = 4
-    num_workers = 1
+    batch_size = 8
+    num_workers = 0
 
     # 模型配置
     input_nc = 1  # 输入通道数
     output_nc = 1  # 输出通道数
 
     # 训练配置
-    epochs = 100  # 训练轮数
-    lr = 1e-4  # 学习率
+    epochs = 10  # 训练轮数
+    lr = 1e-5  # 学习率
     weight_decay = 1e-5  # 权重衰减
     gradient_clip_norm = 1.0  # 梯度裁剪阈值
 
@@ -34,11 +36,11 @@ class Config:
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # 损失函数权重配置
-    w_ssim = 1.0  # SSIM损失权重
+    w_ssim = 1000.0  # SSIM损失权重
     w_gradient = 10.0  # 梯度损失权重
     w_intensity = 5.0  # 强度损失权重
     w_perceptual = 1.0  # 感知损失权重
-    w_mi = 0.5  # 互信息损失权重
+    w_mi = 0  # 互信息损失权重
     use_perceptual = False  # 是否使用感知损失（需要VGG预训练模型）
 
     # 融合策略
@@ -71,4 +73,9 @@ class Config:
     save_metrics = './metrics'
     #模型文件地址
     model_path = './checkpoints/best_model.pth'#默认加载最好的模型
-    #
+    #是否保存每一场融合图像
+    save_individual = True
+    #评价指标保存地址
+    metrics_save_path = './metrics'
+    #是否计算评价指标
+    compute_metrics = True
