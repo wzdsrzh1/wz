@@ -169,7 +169,7 @@ class FusionDataset(Dataset):
 #
 #    return train_loader, val_loader
 
-def create_dataloaders_train(source1_img_paths, source2_img_paths,train_ratio=0.7,image_size=(256, 256),batch_size = 6,num_workers = 2):
+def create_dataloaders_train(source1_img_paths, source2_img_paths,train_ratio=0.8,image_size=(256, 256),batch_size = 6,num_workers = 2):
     #获取图像地址
     source1_paths = get_image_paths(source1_img_paths)
     source2_paths = get_image_paths(source2_img_paths)
@@ -246,7 +246,7 @@ def create_dataloaders_test(source1_test_img_path,source2_test_img_path,
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=num_workers,
         pin_memory=torch.cuda.is_available(),
         drop_last=True,

@@ -11,6 +11,8 @@ from dataload_1 import create_dataloaders_test
 from metrics_1 import metrics_test
 from PIL import Image
 import csv
+from loss_3 import ImageFusionLoss
+from loss_4 import ImagenetLoss
 
 
 class Tester:
@@ -24,8 +26,11 @@ class Tester:
         #加载模型
         self.model = self.load_model(model_path = self.config.model_path)
         #初始化损失函数
-        self.loss = MedicalImageFusionLoss(
-            w_ssim=config.w_ssim
+        self.loss = ImagenetLoss(
+            l_alpha=self.config.l_alpha,
+            l_beta=self.config.l_beta,
+            l_gamma=self.config.l_gamma,
+            mse_w = self.config.mse_w,
             ).to(self.device)
 
     def load_model(self,model_path):
@@ -129,7 +134,7 @@ class Tester:
             fused_img = self.model(img_1,img_2,strategy_type=self.config.fusion_strategy)
 
             # 计算损失
-            total_loss, loss_dict = self.loss(fused_img * 255, img_1 * 255, img_2 *255)
+            total_loss, loss_dict = self.loss(fused_img , img_1 , img_2 )
 
         return fused_img, loss_dict
 
@@ -149,8 +154,7 @@ class Tester:
                       'total': [],
                       'ssim': [],
                       'gradient': [],
-                      'intensity': [],
-                      'mi': []
+                      'contest': []
                       }
         start_time = time.time()
         with torch.no_grad():
@@ -180,19 +184,17 @@ class Tester:
                     metrics = metrics_test(device = self.device,fused_img=fused_np / 255, source1=img1_np / 255,source2=img2_np / 255)
                     result = {
                         'index': img_idx,
-                        'loss_total': loss_dict.get('total', 0.0),
-                        'loss_ssim': loss_dict.get('ssim', 0.0),
-                        'loss_gradient': loss_dict.get('gradient', 0.0),
-                        'loss_intensity': loss_dict.get('intensity', 0.0),
-                        'loss_mi': loss_dict.get('mi', 0.0),
+                        'loss_total': loss_dict.get('total_loss', 0.0),
+                        'loss_ssim': loss_dict.get('ssim_loss', 0.0),
+                        'loss_gradient': loss_dict.get('grad_loss', 0.0),
+                        'loss_contest': loss_dict.get('contest_loss', 0.0),
                         **metrics
                     }
                     all_results.append(result)
-                    total_loss['total'].append(loss_dict.get('total', 0.0))
-                    total_loss['ssim'].append(loss_dict.get('ssim', 0.0))
-                    total_loss['gradient'].append(loss_dict.get('gradient', 0.0))
-                    total_loss['intensity'].append(loss_dict.get('intensity', 0.0))
-                    total_loss['mi'].append(loss_dict.get('mi', 0.0))
+                    total_loss['total'].append(loss_dict.get('total_loss', 0.0))
+                    total_loss['ssim'].append(loss_dict.get('ssim_loss', 0.0))
+                    total_loss['gradient'].append(loss_dict.get('grad_loss', 0.0))
+                    total_loss['contest'].append(loss_dict.get('contest_loss', 0.0))
 
                     # 更新进度条
                 avg_loss = np.mean(total_loss['total'][-batch_size:])
@@ -213,7 +215,7 @@ class Tester:
                     print("\n平均指标:")
                     metric_keys = [k for k in all_results[0].keys()
                                    if k not in ['index', 'loss_total', 'loss_ssim', 'loss_gradient',
-                                                'loss_intensity', 'loss_mi']]
+                                                'loss_contest']]
                     for key in metric_keys:
                         values = [r[key] for r in all_results if key in r and r[key] is not None]
                         if values:

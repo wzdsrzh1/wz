@@ -6,20 +6,20 @@ class Config:
 
 
     # 数据路径配置
-    source1_img_paths = './dataset/CT-MRI/train/CT'
-    source2_img_paths = './dataset/CT-MRI/train/MRI'
-    source1_train_img_path = './dataset/CT-MRI/train/CT'
-    source2_train_img_path = './dataset/CT-MRI/train/MRI'
+    source1_img_paths = './dataset/CT-T1MRI/CT'
+    source2_img_paths = './dataset/CT-T1MRI/T1-MRI'
+    source1_train_img_path = './dataset/CT-T1MRI/CT'
+    source2_train_img_path = './dataset/CT-T1MRI/T1-MRI'
     source1_test_img_path = './dataset/CT-MRI/test/CT'
     source2_test_img_path = './dataset/CT-MRI/test/MRI'
-    source1_val_img_path = './dataset/CT-MRI/val/CT'
-    source2_val_img_path = './dataset/CT-MRI/val/MRI'
+    source1_val_img_path = './dataset/CT-MRI/train/CT'
+    source2_val_img_path = './dataset/CT-MRI/train/MRI'
     #模型选择
     model = 'medical'#可选medical/dense fusion
 
     # 数据加载配置
     image_size = (256, 256)
-    batch_size = 8
+    batch_size = 6
     num_workers = 0
 
     # 模型配置
@@ -27,7 +27,7 @@ class Config:
     output_nc = 1  # 输出通道数
 
     # 训练配置
-    epochs = 10  # 训练轮数
+    epochs = 50  # 训练轮数
     lr = 1e-5  # 学习率
     weight_decay = 1e-5  # 权重衰减
     gradient_clip_norm = 1.0  # 梯度裁剪阈值
@@ -36,12 +36,18 @@ class Config:
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # 损失函数权重配置
-    w_ssim = 1000.0  # SSIM损失权重
-    w_gradient = 10.0  # 梯度损失权重
-    w_intensity = 5.0  # 强度损失权重
+    w_ssim = 1.0  # SSIM损失权重
+    w_gradient = 1.0  # 梯度损失权重
+    w_intensity = 1.0  # 强度损失权重
     w_perceptual = 1.0  # 感知损失权重
     w_mi = 0  # 互信息损失权重
+    w_deco = 1.5
     use_perceptual = False  # 是否使用感知损失（需要VGG预训练模型）
+    #loss_4
+    l_alpha = 3.0
+    l_beta = 1.0
+    l_gamma = 1.0
+    mse_w = 0.01
 
     # 融合策略
     fusion_strategy = 'attention'  # 可选: 'attention', 'weighted', 'max', 'average'
@@ -76,6 +82,6 @@ class Config:
     #是否保存每一场融合图像
     save_individual = True
     #评价指标保存地址
-    metrics_save_path = './metrics'
+    metrics_save_path = './metrics.csv'
     #是否计算评价指标
     compute_metrics = True

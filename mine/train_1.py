@@ -12,6 +12,9 @@ from dataload_1 import create_dataloaders_train
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+from loss_3 import ImageFusionLoss
+from loss_4 import ImagenetLoss
+from visualized_loss import plot_all_losses_separately
 
 
 class Trainer:
@@ -24,8 +27,11 @@ class Trainer:
         os.makedirs(config.save_loss_dir, exist_ok=True)
         os.makedirs(config.log_dir, exist_ok=True)
         #初始化损失函数
-        self.loss = MedicalImageFusionLoss(
-            w_ssim=config.w_ssim
+        self.loss = ImagenetLoss(
+            l_alpha=self.config.l_alpha,
+            l_beta=self.config.l_beta,
+            l_gamma=self.config.l_gamma,
+            mse_w = self.config.mse_w,
             ).to(self.device)
         #初始化模型
         if config.model == 'medical':
@@ -80,6 +86,7 @@ class Trainer:
         train_loss = 0.0
         total_loss_dict = {}
         num_batches = len(train_loader)
+        current_lr = self.optimizer.param_groups[0]['lr']
         pbar = tqdm(train_loader, desc=f'Epoch {self.current_epoch} /{self.config.epochs}')
 
         for batch_idx,batch in enumerate(pbar):
@@ -91,7 +98,7 @@ class Trainer:
                 fused_img = self.model(img1, img2, strategy_type=self.config.fusion_strategy)
             elif self.config.model == 'dense fusion':
                 fused_img = self.model(img1, img2)
-            total_loss,loss_dict = self.loss(fused_img * 255, img1 * 255, img2 * 255)
+            total_loss,loss_dict = self.loss(fused_img, img1 , img2 )
             total_loss.backward()
             if self.config.gradient_clip_norm > 0:
                 torch.nn.utils.clip_grad_norm_(
@@ -113,6 +120,7 @@ class Trainer:
                                           for k, v in loss_dict.items() if k != 'total'])
                     pbar.set_postfix({
                         'loss': f'{avg_loss:.4f}',
+                        'lr': f'{current_lr:.2e}',
                         'details': loss_str
                     })
 
@@ -121,7 +129,7 @@ class Trainer:
             for key in total_loss_dict:
                 total_loss_dict[key] /= num_batches
 
-        return train_loss, total_loss_dict
+        return train_loss, total_loss_dict,current_lr
 
     def validate(self,val_loader):
         """
@@ -144,7 +152,7 @@ class Trainer:
                 img1 = img1.to(self.device)
                 img2 = img2.to(self.device)
                 fused_img = self.model(img1, img2, strategy_type=self.config.fusion_strategy)
-                total_loss, loss_dict = self.loss(fused_img * 255, img1 * 255, img2 * 255)
+                total_loss, loss_dict = self.loss(fused_img , img1 , img2 )
                 #累计损失
                 val_loss += total_loss.item()
                 for key,value in loss_dict.items():
@@ -217,7 +225,7 @@ class Trainer:
 
         print(f"已加载检查点，从epoch {self.current_epoch + 1}继续训练")
 
-    def save_losses(self, train_loss, val_loss=None):
+    def save_losses(self, train_loss, val_loss,lr):
         """
         保存损失到文件
 
@@ -229,7 +237,8 @@ class Trainer:
         loss_file = os.path.join(self.config.save_loss_dir, 'train_losses.json')
         self.train_losses.append({
             'epoch': self.current_epoch + 1,
-            'losses': train_loss
+            'losses': train_loss,
+            'lr':lr
         })
 
         # 保存验证损失
@@ -265,7 +274,7 @@ class Trainer:
         start_time = time.time()
         for epoch in range(self.current_epoch, self.config.epochs):
             self.current_epoch = epoch
-            train_loss,loss_dict = self.train_epoch(train_loader)
+            train_loss,loss_dict,lr = self.train_epoch(train_loader)
             self.train_losses.append(train_loss)
             val_loss = None
             val_loss_dict = None
@@ -300,14 +309,14 @@ class Trainer:
                     print(f"    - {key}: {value:.4f}")
 
             # 保存损失
-            self.save_losses(loss_dict, val_loss_dict)
+            self.save_losses(loss_dict, val_loss_dict,lr)
 
             # 保存检查点
             if (epoch + 1) % self.config.save_interval == 0 or is_best:
                 self.save_checkpoint(is_best=is_best)
 
             print("-" * 60)
-
+        plot_all_losses_separately(file_path = os.path.join(self.config.save_loss_dir, 'train_losses.json'), save_dir=self.config.save_loss_dir)
         total_time = time.time() - start_time
         print(f'训练结束，总用时{total_time:.2f}s')
         print(f"模型保存在: {self.config.save_model_dir}")
